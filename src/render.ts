@@ -235,7 +235,7 @@ export class View {
     }
   }
 
-  private part(m: Member, at: Point, angle: number, damage: number) {
+  private part(m: Member, at: Point, angle: number, damage: number, counted: boolean, debug: boolean) {
     const c = this.context
     const p = this.xy(at), w = m.w*this.scale, h = m.h*this.scale
     c.save();c.translate(p.x,p.y);c.rotate(-angle)
@@ -265,6 +265,7 @@ export class View {
     if(damage>.28){
       c.strokeStyle='#572d28';c.beginPath();c.moveTo(-w*.17,-h*.48);c.lineTo(w*.1,-h*.15);c.lineTo(-w*.11,h*.08);c.lineTo(w*.17,h*.43);c.stroke()
     }
+    if(debug&&counted){c.strokeStyle='#9bf0be';c.lineWidth=2;c.strokeRect(-w/2,-h/2,w,h)}
     c.restore()
   }
 
@@ -523,7 +524,7 @@ export class View {
     c.textAlign='left'
   }
 
-  draw(stage: Stage, sim: Simulation | null, placements: Placement[], marks: Mark[], anchor: Point | undefined, active: number | null,
+  draw(stage: Stage, sim: Simulation | null, placements: Placement[], marks: Mark[], anchor: Point | undefined, active: number | null, debug: boolean,
     options: { hovered?: Mark; pointer?: Point; hoveredEquipment: number | null; placementPriority: boolean; tool: Tool | null; outline: boolean; focused?: SiteEvent },
   ) {
     const c=this.context
@@ -534,7 +535,7 @@ export class View {
     }
     this.supports(stage)
     if(!sim) {
-      for(const m of stage.members)this.part(m,m,m.angle,0)
+      for(const m of stage.members)this.part(m,m,m.angle,0,false,debug)
       this.protectedLoads(stage,null)
       for(const j of stage.joints)this.point(j,j.kind==='foot'?'#dbb877':anchorLabel,j.kind==='foot'?4.2:3.25,false)
       if(options.placementPriority)this.preview(stage,placements,active,options.hoveredEquipment)
@@ -557,9 +558,9 @@ export class View {
       return
     }
     const remaining = new Set(sim.result?.remaining.map(p=>p.id))
-    for(const {data,body,damage} of sim.parts.values()){
+    for(const {data,body,damage,counted} of sim.parts.values()){
       const at=body.getPosition()
-      this.part(data,at,body.getAngle(),damage)
+      this.part(data,at,body.getAngle(),damage,counted,debug)
       if(remaining.has(data.id))this.rectangle(data,at,body.getAngle(),'#efd184',2)
     }
     this.protectedLoads(stage,sim)
@@ -568,7 +569,7 @@ export class View {
     }
     for(const e of sim.extras){
       const at=e.body.getPosition()
-      this.part({id:'equipment',x:at.x,y:at.y,angle:0,kind:'furniture',material:'steel',w:e.w,h:e.h,tint:e.kind==='pad'?'#bc9359':'#596c74'},at,e.body.getAngle(),0)
+      this.part({id:'equipment',x:at.x,y:at.y,angle:0,kind:'furniture',material:'steel',w:e.w,h:e.h,tint:e.kind==='pad'?'#bc9359':'#596c74'},at,e.body.getAngle(),0,false,debug)
     }
     for(const w of sim.wires){c.strokeStyle=w.tension>140?'#ffc07d':'#a3aca4';c.lineWidth=w.tension>140?2:1;this.line(c,w.anchor,w.body.getWorldPoint(w.local))}
     for(const j of sim.jacks){

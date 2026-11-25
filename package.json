@@ -4,7 +4,8 @@
   "type": "module",
   "scripts": {
     "dev": "vite --host 0.0.0.0",
-    "build": "tsc --noEmit && vite build --base=./"
+    "build": "tsc --noEmit && vite build --base=/wreck-works/",
+    "preview": "vite preview --base=/wreck-works/"
   },
   "dependencies": {
     "planck": "1.4.2"

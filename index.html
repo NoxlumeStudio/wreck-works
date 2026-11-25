@@ -10,10 +10,10 @@
 <body>
 <section id="title-screen" role="dialog" aria-modal="true" aria-label="インチキ解体業者 タイトル画面">
   <div class="title-art">
-    <img src="./game-art/title_bg-optimized.webp" alt="インチキ解体業者" width="1920" height="1080" fetchpriority="high">
+    <img src="/game-art/title_bg-optimized.webp" alt="インチキ解体業者" width="1920" height="1080" fetchpriority="high">
     <button class="title-action" id="title-continue" type="button" disabled><span>つづきから</span></button>
-    <button class="title-action" id="title-new" type="button"><span>はじめから</span></button>
-    <button class="title-action" id="title-story" type="button"><span>ストーリー</span></button>
+    <button class="title-action" id="title-new" type="button" disabled><span>はじめから</span></button>
+    <button class="title-action" id="title-story" type="button" disabled><span>ストーリー</span></button>
     <button class="title-action" id="title-options" type="button"><span>設定</span></button>
   </div>
 </section>
@@ -50,12 +50,19 @@
     <details class="story-menu" id="story-menu"><summary>ストーリーを見返す</summary><div id="story-list"></div></details>
     <nav id="stages" aria-labelledby="menu-title"></nav>
     <button class="button" id="return-title" type="button">タイトルへ戻る</button>
+    <details id="developer-menu" hidden>
+      <summary>開発者向け</summary>
+      <button id="debug" type="button" aria-pressed="false">デバッグ表示</button>
+      <button id="test-site" type="button" aria-pressed="false" hidden>カメラ検証棟・20階</button>
+      <pre id="diagnostics" hidden></pre>
+    </details>
   </section>
   <aside class="sidebar" id="mission" aria-label="依頼書">
     <button type="button" class="mission-toggle" id="mission-toggle" aria-expanded="true" aria-controls="mission-content"><span data-icon="clipboard"></span><strong>依頼書</strong><span class="mission-toggle-label" id="mission-toggle-label">閉じる</span></button>
     <div class="mission-content" id="mission-content">
       <section class="ticket panel">
         <div class="location" id="location"></div>
+        <div class="ticket-content"><details class="client" id="client" open><summary id="client-name"></summary><p id="client-quote"><span class="client-photo"><img id="client-portrait" alt="" hidden></span><span id="client-line"></span></p></details><p id="brief"></p><div class="conditions" id="conditions"></div></div>
       </section>
       <section class="panel stats">
         <div class="panel-header"><span data-icon="chart"></span><h2>現場データ</h2></div>
@@ -86,7 +93,7 @@
         <label id="outline-control" hidden><input id="outline" type="checkbox"> 元の形</label>
         <button type="button" id="result-toggle" hidden>結果を表示</button>
         <button type="button" id="placement-priority" aria-pressed="false" hidden>設置点を優先</button>
-        <div id="playback" class="playback" hidden><button id="pause" type="button">一時停止</button><button type="button" data-speed=".5">0.5×</button><button type="button" data-speed="1" aria-pressed="true">1×</button><button type="button" data-speed="2">2×</button></div>
+        <div id="playback" class="playback" hidden><button id="pause" type="button">一時停止</button><button type="button" data-speed=".5">0.5×</button><button type="button" data-speed="1" aria-pressed="true">1×</button><button type="button" data-speed="2">2×</button><button type="button" id="step" hidden>1 STEP</button></div>
       </div>
       <div class="camera-controls" role="group" aria-label="カメラ操作">
         <span class="wheel-hint">ホイールでズーム</span>

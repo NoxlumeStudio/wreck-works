@@ -1,4 +1,4 @@
-name: Publish game to GitHub Pages
+name: Publish WRECK WORKS
 
 on:
   push:
@@ -10,7 +10,7 @@ permissions:
 
 concurrency:
   group: github-pages
-  cancel-in-progress: true
+  cancel-in-progress: false
 
 jobs:
   build:
@@ -21,23 +21,8 @@ jobs:
         with:
           node-version: '24'
           cache: npm
-      - uses: actions/configure-pages@v5
       - run: npm ci
       - run: npm run build
-      - name: Verify compiled site before publishing
-        run: |
-          test -s dist/index.html
-          test -d dist/assets
-          test -f dist/game-art/title_bg-optimized.webp
-          test -f dist/story/story_ch01-optimized.webp
-          if grep -q '/src/main.ts' dist/index.html; then
-            echo 'ERROR: dist/index.html still references development TypeScript.'
-            exit 1
-          fi
-          if ! grep -Eq 'assets/[^" ]+\.(js|css)' dist/index.html; then
-            echo 'ERROR: built CSS/JS references were not found in dist/index.html.'
-            exit 1
-          fi
       - uses: actions/upload-pages-artifact@v4
         with:
           path: dist

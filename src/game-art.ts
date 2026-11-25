@@ -1,7 +1,6 @@
 import type { Tool } from './stages.ts'
 
-// Resolve against the HTML document, not the generated /assets/*.css location.
-const artPath = (name: string) => new URL(`game-art/${name}.webp`, document.baseURI).href
+const artPath = (name: string) => `./game-art/${name}.webp`
 const numbered = (prefix: string, number: number) => artPath(prefix + String(number).padStart(2, '0'))
 
 export const gameArt = {
