@@ -357,3 +357,33 @@ html[data-reduced-motion="true"] .guide-focus:after {
 html[data-hide-guide="true"] #quick-guide {
   display: none !important;
 }
+
+/* Subtle autoplay unlock cue on title screen (hidden automatically once BGM is running) */
+.title-bgm-hint {
+  position: absolute;
+  right: 2.2%;
+  bottom: 2.8%;
+  z-index: 3;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border: 1px solid #f3bc78cc;
+  border-radius: 999px;
+  background: #14242cd9;
+  color: #fff2dc;
+  font-size: clamp(11px, 1.25cqw, 14px);
+  font-weight: 800;
+  box-shadow: 0 4px 14px #00000055;
+  backdrop-filter: blur(4px);
+  transition: transform 0.12s, background-color 0.12s;
+}
+
+.title-bgm-hint:hover {
+  background: #1d323df0;
+  transform: translateY(-1px);
+}
+
+.title-bgm-hint svg {
+  color: var(--orange);
+}

@@ -561,10 +561,22 @@ class GameAudioEngine {
       this.noiseBuffer = buffer;
 
       this.applyVolumes(true);
+
+      this.ctx.addEventListener("statechange", () => {
+        if (this.ctx && this.ctx.state === "running") {
+          this.syncBgm();
+          this.notifyUI();
+        }
+      });
     }
 
     if (this.ctx.state === "suspended" && !document.hidden) {
-      this.ctx.resume().catch(() => {});
+      this.ctx.resume().then(() => {
+        if (this.ctx && this.ctx.state === "running") {
+          this.syncBgm();
+          this.notifyUI();
+        }
+      }).catch(() => {});
     }
     return this.ctx;
   }
@@ -572,13 +584,43 @@ class GameAudioEngine {
   unlock() {
     const ctx = this.ensureContext();
     if (!ctx) return;
-    if (ctx.state === "suspended") {
-      ctx.resume().then(() => {
-        this.syncBgm();
-      }).catch(() => {});
-    } else {
-      this.syncBgm();
+
+    // Classic WebKit/iOS/iframe unlock: start a 1-sample silent buffer inside the user gesture
+    try {
+      const silent = ctx.createBuffer(1, 1, ctx.sampleRate);
+      const src = ctx.createBufferSource();
+      src.buffer = silent;
+      src.connect(ctx.destination);
+      src.start(0);
+    } catch {
+      // ignore
     }
+
+    if (ctx.state === "running") {
+      this.syncBgm();
+      this.notifyUI();
+    } else if (ctx.state === "suspended") {
+      ctx.resume().then(() => {
+        if (ctx.state === "running") {
+          this.syncBgm();
+          this.notifyUI();
+        }
+      }).catch(() => {});
+    }
+  }
+
+  tryAutoplay() {
+    if (document.hidden) return;
+    const ctx = this.ensureContext();
+    if (!ctx) return;
+    if (ctx.state === "running") {
+      this.syncBgm();
+      this.notifyUI();
+    }
+  }
+
+  isRunning() {
+    return Boolean(this.ctx && this.ctx.state === "running");
   }
 
   applyVolumes(immediate = false) {
@@ -1937,10 +1979,47 @@ const prefsStore = new GamePreferences();
 window.__gameAudio = engine;
 window.__gamePrefs = prefsStore;
 
+function mountTitleAutoplayHint(engine) {
+  const titleArt = document.querySelector("#title-screen .title-art");
+  if (!titleArt || document.getElementById("title-bgm-hint")) return;
+
+  const hint = document.createElement("button");
+  hint.type = "button";
+  hint.id = "title-bgm-hint";
+  hint.className = "title-bgm-hint";
+  hint.innerHTML = `${ICON_NOTE}<span>画面クリックでBGM再生</span>`;
+  hint.hidden = true;
+
+  hint.addEventListener("click", (e) => {
+    e.stopPropagation();
+    engine.unlock();
+    updateHint();
+  });
+
+  titleArt.append(hint);
+
+  function updateHint() {
+    const muted = engine.settings.masterMuted || engine.settings.bgmMuted || engine.settings.master === 0 || engine.settings.bgm === 0;
+    const unlocked = engine.isRunning();
+    hint.hidden = unlocked || muted;
+  }
+
+  engine.onUIChange(updateHint);
+
+  // Give tryAutoplay() a brief moment to settle before showing the hint
+  window.setTimeout(updateHint, 220);
+}
+
 function bindGlobalInteractions() {
   const unlockHandler = () => engine.unlock();
-  window.addEventListener("pointerdown", unlockHandler, { capture: true, passive: true });
-  window.addEventListener("keydown", unlockHandler, { capture: true, passive: true });
+  const gestureEvents = ["pointerdown", "pointerup", "click", "touchend", "keydown"];
+  for (const evt of gestureEvents) {
+    window.addEventListener(evt, unlockHandler, { capture: true, passive: true });
+  }
+
+  // Try immediate autoplay for browsers/sessions that allow it
+  engine.tryAutoplay();
+  window.addEventListener("load", () => engine.tryAutoplay(), { once: true });
 
   document.addEventListener("visibilitychange", () => {
     if (!engine.ctx) return;
@@ -1968,6 +2047,7 @@ function bindGlobalInteractions() {
       id === "pause" ||
       id === "story-next" ||
       id === "title-options" ||
+      id === "title-bgm-hint" ||
       id === "audio-test-se" ||
       id === "audio-reset-defaults" ||
       btn.classList.contains("audio-mute-btn")
@@ -1994,9 +2074,11 @@ function bindGlobalInteractions() {
 if (document.readyState === "loading") {
   document.addEventListener("DOMContentLoaded", () => {
     mountAudioUI(engine, prefsStore);
+    mountTitleAutoplayHint(engine);
     bindGlobalInteractions();
   });
 } else {
   mountAudioUI(engine, prefsStore);
+  mountTitleAutoplayHint(engine);
   bindGlobalInteractions();
 }
