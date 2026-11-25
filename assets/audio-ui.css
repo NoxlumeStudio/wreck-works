@@ -1,0 +1,359 @@
+/* Settings & Audio UI matching インチキ解体業者 blueprint/paper aesthetic */
+.title-dialog {
+  max-height: min(90dvh, 760px);
+  overflow: auto;
+  scrollbar-color: #9b866e #eee7da;
+}
+
+.audio-settings {
+  margin-top: 12px;
+  display: grid;
+  gap: 11px;
+}
+
+.settings-section-title {
+  margin: 0 0 2px;
+  font-size: 12px;
+  font-weight: 850;
+  letter-spacing: 0.04em;
+  color: #6b5844;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.settings-section-title::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: #e1d8c8;
+}
+
+.audio-settings-card {
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  background: #faf7ee;
+  padding: 11px 13px;
+  display: grid;
+  gap: 11px;
+}
+
+.audio-settings-subtitle {
+  margin: 4px 0 0;
+  font-size: 12.5px;
+  color: var(--muted);
+}
+
+.audio-row {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  grid-template-rows: auto auto;
+  align-items: center;
+  column-gap: 10px;
+  row-gap: 5px;
+}
+
+.audio-row-header {
+  grid-column: 1 / 4;
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.audio-row-label {
+  font-size: 13.5px;
+  font-weight: 800;
+  color: var(--ink);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.audio-row-tag {
+  font: 700 10.5px var(--mono);
+  color: #6b5844;
+  background: #ede6d8;
+  padding: 1px 5px;
+  border-radius: 4px;
+}
+
+.audio-row-value {
+  font: 800 13px var(--mono);
+  color: #4b5c58;
+  min-width: 4.2ch;
+  text-align: right;
+}
+
+.audio-row[data-muted="true"] .audio-row-value {
+  color: #9e4b2b;
+}
+
+.audio-mute-btn {
+  width: 34px;
+  height: 32px;
+  display: inline-grid;
+  place-items: center;
+  padding: 0;
+  border: 1px solid #cfc4b2;
+  border-radius: 7px;
+  background: #f2ece0;
+  color: #364544;
+  transition: background-color 0.12s, border-color 0.12s, color 0.12s;
+}
+
+.audio-mute-btn:hover {
+  background: #e9dfce;
+  border-color: #b79c77;
+}
+
+.audio-mute-btn[aria-pressed="true"] {
+  background: #f4dfd5;
+  border-color: #c77255;
+  color: #9e3f23;
+}
+
+.audio-slider {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 8px;
+  border-radius: 999px;
+  background: linear-gradient(
+    to right,
+    var(--slider-fill, #d49357) 0%,
+    var(--slider-fill, #d49357) var(--pct, 40%),
+    #e2dacb var(--pct, 40%),
+    #e2dacb 100%
+  );
+  outline: none;
+  cursor: pointer;
+}
+
+.audio-slider[data-channel="bgm"] {
+  --slider-fill: #548676;
+}
+
+.audio-slider[data-channel="se"] {
+  --slider-fill: #d49357;
+}
+
+.audio-slider[data-channel="master"] {
+  --slider-fill: #3e6b73;
+}
+
+.audio-row[data-muted="true"] .audio-slider {
+  opacity: 0.48;
+}
+
+.audio-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: #fffcf5;
+  border: 2.5px solid #35474b;
+  box-shadow: 0 1px 4px #18232844;
+  transition: transform 0.1s, border-color 0.12s;
+}
+
+.audio-slider::-webkit-slider-thumb:hover {
+  transform: scale(1.08);
+  border-color: #b66c28;
+}
+
+.audio-slider::-moz-range-thumb {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: #fffcf5;
+  border: 2.5px solid #35474b;
+  box-shadow: 0 1px 4px #18232844;
+}
+
+.audio-slider:focus-visible {
+  outline: 2px solid #ffbc65;
+  outline-offset: 4px;
+}
+
+.audio-now-playing {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 6px 9px;
+  border-radius: 7px;
+  background: #efe9dc;
+  border: 1px solid #dfd6c6;
+  font-size: 12px;
+  color: #5b5346;
+}
+
+.audio-now-playing strong {
+  color: #2f3c3e;
+  font-weight: 800;
+}
+
+/* Gameplay & Display option rows */
+.pref-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding-top: 8px;
+  border-top: 1px solid #eae2d4;
+}
+
+.pref-row:first-of-type {
+  padding-top: 0;
+  border-top: 0;
+}
+
+.pref-copy {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.pref-title {
+  font-size: 13px;
+  font-weight: 800;
+  color: var(--ink);
+}
+
+.pref-desc {
+  font-size: 11.5px;
+  line-height: 1.38;
+  color: var(--muted);
+}
+
+.pref-segment {
+  display: inline-flex;
+  border: 1px solid #cfc4b2;
+  border-radius: 7px;
+  overflow: hidden;
+  background: #efe8da;
+  flex: none;
+}
+
+.pref-segment button {
+  min-width: 44px;
+  min-height: 30px;
+  padding: 3px 8px;
+  border: 0;
+  border-right: 1px solid #d7cdbc;
+  background: transparent;
+  color: #465352;
+  font: 800 12px var(--mono);
+  transition: background-color 0.12s, color 0.12s;
+}
+
+.pref-segment button:last-child {
+  border-right: 0;
+}
+
+.pref-segment button:hover {
+  background: #e5dccb;
+}
+
+.pref-segment button[aria-pressed="true"] {
+  background: var(--orange);
+  color: #231a12;
+}
+
+.pref-switch {
+  position: relative;
+  flex: none;
+  width: 46px;
+  height: 26px;
+  padding: 0;
+  border: 1px solid #c7bba7;
+  border-radius: 999px;
+  background: #dfd7c7;
+  transition: background-color 0.16s, border-color 0.16s;
+}
+
+.pref-switch::after {
+  content: "";
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: #fffcf6;
+  box-shadow: 0 1px 3px #18232844;
+  transition: transform 0.16s;
+}
+
+.pref-switch[aria-checked="true"] {
+  background: #548676;
+  border-color: #416d5f;
+}
+
+.pref-switch[aria-checked="true"]::after {
+  transform: translateX(20px);
+}
+
+.audio-settings-tools {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 7px;
+  flex-wrap: wrap;
+}
+
+.audio-mini-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  min-height: 32px;
+  padding: 4px 10px;
+  border: 1px solid #d3c5b0;
+  border-radius: 7px;
+  background: #f5ecdc;
+  color: var(--ink);
+  font-size: 12px;
+  font-weight: 750;
+}
+
+.audio-mini-btn:hover:not(:disabled) {
+  background: #ece0cb;
+  border-color: #b79c77;
+}
+
+.audio-mini-btn:disabled {
+  opacity: 0.48;
+}
+
+.audio-mini-btn.danger {
+  background: #f7e6df;
+  border-color: #d6a494;
+  color: #8f371e;
+}
+
+.audio-mini-btn.danger:hover:not(:disabled) {
+  background: #f1d7cc;
+  border-color: #bd745f;
+}
+
+.title-dialog .dialog-footer {
+  margin-top: 14px;
+  display: flex;
+  justify-content: flex-end;
+}
+
+#menu-panel .menu-audio-btn {
+  width: 100%;
+  margin-bottom: 6px;
+}
+
+/* Live preference effects */
+html[data-reduced-motion="true"] .guide-focus:after {
+  animation: none;
+}
+
+html[data-hide-guide="true"] #quick-guide {
+  display: none !important;
+}
