@@ -1093,7 +1093,12 @@ function frame(now: number) {
 }
 setMission(!matchMedia('(max-width:850px)').matches)
 switchStage(0)
-void syncProgress().finally(()=>{
+// Do not leave the title controls disabled indefinitely when IndexedDB is
+// blocked or unavailable. Save synchronization is best-effort at startup.
+void Promise.race([
+  syncProgress(),
+  new Promise<void>(resolve => setTimeout(resolve, 2500)),
+]).finally(()=>{
   storyProgress.migrate(campaignGeneration,records,latest,guideSeen('cut'))
   storyReady=true
   refreshStoryMenu()
