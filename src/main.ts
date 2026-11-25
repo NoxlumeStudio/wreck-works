@@ -5,7 +5,6 @@ import { toolGuides } from './tool-guides.ts'
 import { burstReach, burstSites, isBurst } from './bursts.ts'
 import './style.css'
 import './title.css'
-import { cameraTestSite } from './camera-test-site.ts'
 import { nearbyTarget, targetLabels } from './targets.ts'
 import { icon } from './icons.ts'
 import { gameArt, stageImage, useOptionalImage } from './game-art.ts'
@@ -26,7 +25,6 @@ const yen = (cost: number) => `¥${cost.toLocaleString('ja-JP')}`
 let level = 0
 let records: Record<string,number> = {}
 let latest: Record<string,number> = {}
-let debugRun = false
 let labels = new Map<string,string>()
 let pointer: Point | undefined
 let screenTargets: {point:Point;item:Mark}[] = []
@@ -55,7 +53,6 @@ function applyNewCampaign(generation: string) {
   latest={}
   pendingSaves.clear()
   seenGuides.clear()
-  if(debug)button('debug').click()
   if(storyReady)storyProgress.mark(generation,'initialized')
   switchStage(0)
 }
@@ -78,7 +75,6 @@ updates?.addEventListener('message',()=>{if(storyReady)void syncProgress()})
 window.addEventListener('focus',()=>{if(storyReady)void syncProgress()})
 
 let stage: Stage = stages[level]
-let testingCamera = false
 let floorSelection = 'all'
 let state: 'edit' | 'running' | 'result' = 'edit'
 let selected: Tool | null = null
@@ -98,7 +94,7 @@ function guideSeen(tool: Tool) {
   try{return localStorage.getItem(guideKey(tool))===guideStamp()}catch{return false}
 }
 function unlockedGuide() {
-  return testingCamera?undefined:stages[level].unlockedTools[0]
+  return stages[level].unlockedTools[0]
 }
 let guideActive=false
 let guidePlaced: Placement|undefined
@@ -113,7 +109,6 @@ let recentEvent: SiteEvent | undefined
 let sim: Simulation | null = null
 let speed = 1
 let paused = false
-let debug = false
 let last = performance.now()
 let accumulator = 0
 let lastMetric = -Infinity
@@ -192,14 +187,6 @@ function meters() {
     }).join('')
     get('hud-protection').textContent=assets.length===1?`｜ ${assets[0].name} ${protectionText(sim?.assetDamage[assets[0].id]??0,assets[0].tolerance)}`:`｜ 保護条件 ${safe}/${assets.length}`
   }
-  if (debug) {
-    if (testingCamera) { cameraReadout(); return }
-    const data = sim ?? new Simulation(stage)
-    const beams = data.initial.beams.map(b => `${b.id}  R=${b.reaction.toFixed(0)} N  M=${b.moment.toFixed(0)} N·m  δ=${(b.deflection*1000).toFixed(2)} mm`)
-    const ties = Array.from(data.ties.values(), t => `${t.data.id} ${t.joint?'接続':'破断'}  負荷 ${(100*t.stress).toFixed(0)}%  損傷 ${(100*Math.min(1,t.damage)).toFixed(0)}%`)
-    const counted = Array.from(data.parts.values()).filter(p => p.counted).map(p => p.data.id)
-    get('diagnostics').textContent = [`STEP 60 Hz · ${data.ticks}回 · T=${data.time.toFixed(2)} s · 静止 ${data.quiet.toFixed(2)} s · 動作中 ${data.moving.map(m=>m.id).join(', ')||'なし'} · 衝突 ${data.impacts} · 保護対象損傷 ${data.damage.toFixed(2)}`, '初期の梁の概算値', ...beams, '接合部', ...ties, `解体済み部材 ${counted.join(', ') || 'なし'}`].join('\n')
-  }
 }
 function ruleText(rule: StarRule) {
   return [rule.cost!==undefined?`費用 ${yen(rule.cost)}以内`:'',
@@ -208,8 +195,7 @@ function ruleText(rule: StarRule) {
 }
 function conditions() {
   const assets=stage.assets??[]
-  get('goal-text').textContent = testingCamera ? '表示検証・20階' : `目標 ${stage.goal}%以上${assets.length?'・保護条件あり':''}`
-  if (testingCamera) { get('conditions').replaceChildren(); return }
+  get('goal-text').textContent = `目標 ${stage.goal}%以上${assets.length?'・保護条件あり':''}`
   get('conditions').innerHTML = `<div class="condition"><span>${icon('target')}解体率</span><b>${stage.goal}%以上</b></div><div class="condition"><span>工事費</span><b>${yen(stage.budget)}以内</b></div>${assets.map(a=>`<div class="condition"><span>${icon('shield')}${a.name}</span><b>${a.tolerance?'許容損傷 '+a.tolerance+'点まで':'無傷'}</b></div>`).join('')}${(stage.stars??[]).map((r,i)=>`<div class="star-rule"><b>★${i+2}</b> ${ruleText(r)}${i===1?' ＋ ★2の条件':''}</div>`).join('')}`
 }
 function tabs() {
@@ -223,8 +209,8 @@ function tabs() {
       const i=s.number-1
       const el = document.createElement('button')
       el.type='button';el.className='stage-tab';el.dataset.job=String(s.number)
-      el.setAttribute('aria-current',String(i===level&&!testingCamera))
-      el.disabled=!debug&&!available(stages,i,records)
+      el.setAttribute('aria-current',String(i===level))
+      el.disabled=!available(stages,i,records)
       const rating=records[s.id]??0
       el.innerHTML=`<b>${String(s.number).padStart(2,'0')}</b><span>${s.name}</span>${el.disabled?icon('lock'):rating?`<small class="tab-stars" aria-label="最高 星${rating}つ">${'★'.repeat(rating)}${'☆'.repeat(3-rating)}</small>`:''}`
       if(latest[s.id]!==undefined){
@@ -234,13 +220,13 @@ function tabs() {
         el.append(label)
       }
       if(el.disabled)el.title='前の現場をクリアすると解放'
-      el.addEventListener('click',()=>{if(i!==level||testingCamera)switchStage(i);setMenu(false)})
+      el.addEventListener('click',()=>{if(i!==level)switchStage(i);setMenu(false)})
       group.append(el)
     }
     return group
   })
   get('stages').replaceChildren(...sections)
-  const stars = testingCamera ? 0 : records[stages[level].id] ?? 0
+  const stars = records[stages[level].id] ?? 0
   const badge = get('job-stars')
   badge.hidden = !stars
   badge.textContent = '★'.repeat(stars)+'☆'.repeat(3-stars)
@@ -581,7 +567,7 @@ function edit(keep: boolean) {
   paused=false;speed=1;accumulator=0;focusedImpact=undefined;recentEvent=undefined;lastEventUpdate=-Infinity
   get('outline-control').hidden=true;get('result-toggle').hidden=true
   get('mode').dataset.state='edit';get('mode').textContent='配置モード'
-  get('run-text').textContent=testingCamera?'表示検証':'解体開始';button('run').disabled=testingCamera
+  get('run-text').textContent='解体開始';button('run').disabled=false
   get('playback').hidden=true;get('result').hidden=true
   refreshEdit(keep ? '前回の配置を引き継ぎました。道具を置き直せます。' : sceneStatus)
 }
@@ -594,7 +580,7 @@ function playStories(events: (typeof scenario)[number][], returnFocus:()=>void) 
   refreshStoryMenu()
 }
 function playEntryStories() {
-  if(!storyReady||!titleScreen.hidden||debug||testingCamera)return
+  if(!storyReady||!titleScreen.hidden)return
   const entry=storyProgress.entry(campaignGeneration,level+1)
   if(entry.length)playStories(entry,()=>button('game-menu').focus())
 }
@@ -630,19 +616,18 @@ function playEnding() {
     playStories([ending],()=>button('result-toggle').focus())
 }
 
-function switchStage(index: number, test = false, showEntry = true) {
+function switchStage(index: number, showEntry = true) {
   endingPending=false
-  level=index;testingCamera=test;stage=test?cameraTestSite():stages[level]
+  level=index;stage=stages[level]
   const guide=unlockedGuide()
   guideActive=!!guide&&!guideSeen(guide)
   guidePlaced=undefined
-  button('test-site').setAttribute('aria-pressed',String(test))
-  get('job-number').textContent=test?'開発用':`依頼 ${String(level+1).padStart(2,'0')} / ${String(stages.length).padStart(2,'0')}`
+  get('job-number').textContent=`依頼 ${String(level+1).padStart(2,'0')} / ${String(stages.length).padStart(2,'0')}`
   // The old placements are cleared by edit() before it rebuilds scene targets.
   measureView()
   pointer=undefined
   const job = stages[level]
-  view.load(stage, test ? undefined : stageImage(job.chapter))
+  view.load(stage, stageImage(job.chapter))
   labels=targetLabels(stage,view.floors)
   floorSelection='all'
   buildFloorControls()
@@ -651,32 +636,28 @@ function switchStage(index: number, test = false, showEntry = true) {
   get('location').textContent=stage.location
   get('client-name').textContent=stage.client.name
   get('client-line').textContent=`「${stage.client.quote}」`
-  useOptionalImage(get<HTMLImageElement>('client-portrait'), test ? undefined : gameArt.client(job.number))
+  useOptionalImage(get<HTMLImageElement>('client-portrait'), gameArt.client(job.number))
   get<HTMLDetailsElement>('client').open=true
-  get('brief').textContent=stage.brief
-  get('brief').hidden=!test
   hintLevel=0
   get('hint').hidden=true
   button('next-hint').disabled=false;button('next-hint').textContent='ヒントを表示'
   conditions();tabs();edit(false)
-  if(testingCamera && debug)cameraReadout()
-  if(!test&&stages[level].unlockedTools.length){
+  if(stages[level].unlockedTools.length){
     const intro=stages[level].unlockedTools.map(tool=>`${tools[tool].name}を解放。 ${tools[tool].desc}`).join('。')
     message(intro)
   }
-  if(storyReady&&titleScreen.hidden&&!test&&!debug){
+  if(storyReady&&titleScreen.hidden){
     try{localStorage.setItem(stageSaveKey(),job.id)}catch{/* Progress remains usable within this tab. */}
   }
   if(showEntry)playEntryStories()
 }
-function begin(verification = false) {
-  if(testingCamera||storyPlayer.open)return
+function begin() {
+  if(storyPlayer.open)return
   if(state==='result'){edit(true); return}
   if(state!=='edit')return
   if(anchor){message('接続先が未選択です。接続を完了するか、接続を中止してください。',true);return}
   if(!placements.length){message('先に道具を1つ以上置いてください。',true);return}
   if(costOf(placements)>stage.budget){message('予算を超えています。',true);return}
-  debugRun=debug||verification
   runGeneration=campaignGeneration
   sim=new Simulation(stage,placements)
   state='running';selected=null;anchor=undefined;placementPriority=false;marks=[]
@@ -691,7 +672,6 @@ function begin(verification = false) {
   get('playback').hidden=false
   get('scene-status').textContent='解体中'
   button('pause').textContent='一時停止';button('pause').setAttribute('aria-pressed','false')
-  button('step').hidden=!debug
   for(const el of document.querySelectorAll<HTMLButtonElement>('[data-speed]'))el.setAttribute('aria-pressed',String(Number(el.dataset.speed)===speed))
   toolsState();meters();message('現場が静まるまで見守りましょう。')
 }
@@ -710,9 +690,9 @@ function showResult(result: Result) {
   button('run').disabled=false;get('run-text').textContent='配置編集へ'
   button('result-toggle').hidden=false
   const id=stages[level].id
-  endingPending=!debugRun&&runGeneration===campaignGeneration
+  endingPending=runGeneration===campaignGeneration
     &&storyProgress.canOfferEnding(campaignGeneration,level+1,result.success?result.stars:0)
-  if(!debugRun&&runGeneration===campaignGeneration){
+  if(runGeneration===campaignGeneration){
     latest[id]=result.stars
     if(result.success)records[id]=Math.max(records[id]??0,result.stars)
     ++progressRead
@@ -757,15 +737,15 @@ function showResult(result: Result) {
   const bonuses=(stage.stars??[]).map((rule,i)=>`<p class="bonus">${result.stars>=i+2?'達成':'未達成'}・★${i+2} ${ruleText(rule)}</p>`).join('')
   const failures=result.reasons.map(reason=>reason==='まだ建物が残っています。'?`解体率があと${stage.goal-result.rate}ポイント足りません。`:reason)
   const best=records[id]
-  const ratings=`<p>今回 ${result.stars?`★${result.stars}`:'未達成'} ／ 最高 ${best?`★${best}`:'記録なし'}${debugRun?'（検証プレイ・保存なし）':''}</p>`
-  const next=result.success&&(debug?level<stages.length-1:available(stages,level+1,records))
+  const ratings=`<p>今回 ${result.stars?`★${result.stars}`:'未達成'} ／ 最高 ${best?`★${best}`:'記録なし'}</p>`
+  const next=result.success&&available(stages,level+1,records)
   const remainder=[...result.remaining].sort((a,b)=>b.mass-a.mass)
   const leftover=remainder.length?`<details class="timeline" ${result.rate<stage.goal?'open':''}><summary>解体率に入らなかった建材（${remainder.length}点）</summary><ol>${remainder.slice(0,8).map(p=>`<li>${objectName(stage,p.id)}・${remainingReasonText[p.reason]}${p.reason==='high'?`（上端 ${p.top.toFixed(1)}m ／ 基準 ${stage.height.toFixed(1)}m）`:''}</li>`).join('')}${remainder.length>8?`<li>ほか ${remainder.length-8}点</li>`:''}</ol></details>`:''
   const motion=result.timedOut?`<p>静止確認 ${result.quiet.toFixed(2)} / 1.25秒</p>${result.moving.length?`<p>最後に動いていた部材・道具</p><ul class="advice">${result.moving.slice(0,4).map(p=>`<li>${objectName(stage,p.id)}（移動 ${p.speed.toFixed(2)}m/s・回転 ${p.spin.toFixed(2)}rad/s）</li>`).join('')}</ul>`:''}`:''
   const timeline = observations.length ? `<details class="timeline"><summary>現場記録</summary><ol>${observations.map((e,i)=>`<li><button type="button" data-event="${i}"><time>${e.time.toFixed(1)}秒</time> ${eventText(stage,e)}</button></li>`).join('')}</ol></details>` : ''
   panel.innerHTML=`<h2>${heading}</h2>${result.success ? `<span class="stars" aria-label="星${result.stars}つ">${'★'.repeat(result.stars)}${'☆'.repeat(3-result.stars)}</span>` : `<p>${failures.join(' ')}</p>`}${ratings}<details class="client result-client" open><summary>${stage.client.name}</summary><p>「${comment}」</p></details><dl><dt>解体率</dt><dd>${result.rate}% / ${stage.goal}%</dd><dt>作業時間</dt><dd>${result.elapsed.toFixed(1)}秒 ／ ${result.ticks}更新</dd><dt>使用予算</dt><dd>${yen(result.cost)} / ${yen(stage.budget)}</dd><dt>使わずに済んだ予算</dt><dd>${yen(result.saved)}</dd>${protection}</dl>${bonuses}${advice.length ? `<ul class="advice">${advice.map(text=>`<li>${text}</li>`).join('')}</ul>` : ''}<div class="result-actions"><button class="button secondary" type="button" id="result-retry">配置を修正</button><button class="button secondary" type="button" id="result-inspect">現場を確認</button><button class="button secondary" type="button" id="result-repeat">同じ配置で再挑戦</button>${next?'<button class="button primary" type="button" id="result-next">次の依頼</button>':''}${endingPending?'<button class="button primary" type="button" id="result-ending">エンディングへ</button>':''}</div>${leftover}${motion}${timeline}`
   button('result-retry').addEventListener('click',()=>edit(true))
-  button('result-repeat').addEventListener('click',()=>{const verification=debugRun;edit(true);begin(verification)})
+  button('result-repeat').addEventListener('click',()=>{edit(true);begin()})
   const leaveResult=()=>{
     setResultOpen(false)
     if(endingPending)playEnding()
@@ -808,7 +788,6 @@ function pause() {
   get('scene-status').textContent=paused?'一時停止中':'解体中'
 }
 button('pause').addEventListener('click',pause)
-button('step').addEventListener('click',()=>{if(!sim||state!=='running')return;if(!paused)pause();sim.step();meters();if(sim.result)showResult(sim.result)})
 for(const el of document.querySelectorAll<HTMLButtonElement>('[data-speed]'))el.addEventListener('click',()=>{
   speed=Number(el.dataset.speed)
   for(const b of document.querySelectorAll<HTMLButtonElement>('[data-speed]'))b.setAttribute('aria-pressed',String(b===el))
@@ -830,7 +809,7 @@ function confirmNewGame() {
 }
 button('title-continue').addEventListener('click',()=>{
   enterGame()
-  switchStage(resumeStage(stages,records,lastStage()),false,false)
+  switchStage(resumeStage(stages,records,lastStage()),false)
   button('game-menu').focus()
 })
 button('title-new').addEventListener('click',()=>{
@@ -874,25 +853,11 @@ button('confirm-new-game').addEventListener('click',async()=>{
     confirm.disabled=cancel.disabled=false
   }
 })
-get('developer-menu').hidden=!import.meta.env.DEV
-button('debug').addEventListener('click',()=>{
-  if(!import.meta.env.DEV)return
-  debug=!debug
-  button('debug').setAttribute('aria-pressed',String(debug))
-  get('diagnostics').hidden=!debug || testingCamera
-  button('test-site').hidden=!debug
-  button('step').hidden=!debug
-  if (!debug && (testingCamera || !available(stages,level,records))) {
-    switchStage(available(stages,level,records)?level:0)
-  }
-  tabs();meters()
-})
 function setMenu(open: boolean) {
   if(open)cancelLink()
   get('menu-panel').hidden = !open
   button('game-menu').setAttribute('aria-expanded',String(open))
   if(open)refreshStoryMenu()
-  if(open && testingCamera) cameraReadout()
 }
 button('game-menu').addEventListener('click',()=>setMenu(get('menu-panel').hidden))
 function returnToTitle() {
@@ -922,11 +887,6 @@ button('replay-guide').addEventListener('click',()=>{
   else updateGuide()
   guideTarget?.focus()
 })
-button('test-site').addEventListener('click',()=>{
-  if(!debug)return
-  switchStage(level,!testingCamera)
-  setMenu(false)
-})
 document.addEventListener('pointerdown',event=>{
   if (!newGameDialog.open && !(event.target as HTMLElement).closest('#menu-panel, #game-menu')) setMenu(false)
 })
@@ -950,12 +910,6 @@ function resizeView() {
   cameraChanged()
 }
 
-function cameraReadout() {
-  const ground = view.originY
-  get('diagnostics').textContent = `地面 Y=0 · 画面 ${Math.round(ground)}px / ${view.h}px · ${ground >= 0 && ground < view.h ? '表示内' : '表示外'}
-カメラ Y=${view.camera.center.y.toFixed(2)} m · ${view.scale.toFixed(1)} px/m`
-  if(debug) get('diagnostics').hidden=false
-}
 function jump(value: string) {
   if (value === 'all') view.camera.fit()
   else {
@@ -1011,7 +965,6 @@ function cameraChanged() {
   updateCameraControls()
   pointer=undefined
   if (state === 'edit') sceneTargets()
-  if(testingCamera && debug)cameraReadout()
 }
 function setPan(enabled: boolean) {
   panMode = enabled
@@ -1133,7 +1086,7 @@ function frame(now: number) {
     if(now-lastMetric>=100){meters();runningNote();lastMetric=now}
     if(sim.result)showResult(sim.result)
   }
-  view.draw(stage,sim,placements,marks,stage.points.find(p=>p.id===anchor),inspected,debug,{
+  view.draw(stage,sim,placements,marks,stage.points.find(p=>p.id===anchor),inspected,{
     hovered: hoveredEquipment===null?hovered??guidePreview:undefined, hoveredEquipment, pointer, placementPriority:placementPriority||(selected==='wire'&&!!anchor), tool: selected, outline: get<HTMLInputElement>('outline').checked, focused: focusedImpact,
   })
   requestAnimationFrame(frame)
