@@ -131,9 +131,10 @@ function hasGame() {
     Object.keys(records).length>0||Object.keys(latest).length>0||storyProgress.seen(campaignGeneration,'op')
 }
 function refreshTitleControls() {
-  button('title-continue').disabled=!storyReady||!hasGame()
-  button('title-new').disabled=!storyReady
-  button('title-story').disabled=!storyReady
+  button('title-continue').disabled=!hasGame()
+  // Starting a new game and reading the story must not depend on IndexedDB.
+  button('title-new').disabled=false
+  button('title-story').disabled=false
 }
 function enterGame() {
   titleScreen.hidden=true
@@ -1099,10 +1100,11 @@ void Promise.race([
   syncProgress(),
   new Promise<void>(resolve => setTimeout(resolve, 2500)),
 ]).finally(()=>{
-  storyProgress.migrate(campaignGeneration,records,latest,guideSeen('cut'))
+  // Storage/migration errors must never leave the title screen locked.
+  try { storyProgress.migrate(campaignGeneration,records,latest,guideSeen('cut')) } catch (error) { console.warn('Story migration skipped:', error) }
   storyReady=true
-  refreshStoryMenu()
+  try { refreshStoryMenu() } catch (error) { console.warn('Story menu initialization skipped:', error) }
   refreshTitleControls()
-  updateGuide()
+  try { updateGuide() } catch (error) { console.warn('Guide initialization skipped:', error) }
 })
 requestAnimationFrame(frame)
